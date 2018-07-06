@@ -1,0 +1,245 @@
+---
+title: "PCA"
+author: "Nitin Arun Khandare"
+date: "12 March 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+xc <- 1    ### center x_c or h
+yc <- 2    ### y_c or k
+
+a<- 5      ## major axis length
+b<- 2      ## minor axis length
+
+phi <- pi/3 ## angle of major axis with x axis phi or tau
+
+t<-seq(0,2*pi,0.01)
+
+x<-xc+a*cos(t)*cos(phi) - b*sin(t)*sin(phi)
+
+y<-yc+a*cos(t)*cos(phi) + b*sin(t)*cos(phi)
+
+plot(x,y,pch=19,col='blue')
+```
+
+
+
+```{r}
+
+df=data.frame(x=x,y=y)
+df_scale = scale(df)
+
+sd(df_scale[,2])
+
+```
+
+
+
+```{r}
+
+## eigen values and vectors
+e=eigen(cor(df_scale))
+
+e$values
+e$vectors
+
+
+
+e=eigen(cor(stock %>% select(-Date,-SAMSUNG)))
+```
+
+
+
+```{r}
+##PCS 
+pcs=df_scale %*% e$vectors
+
+var(pcs[,2])
+cor(pcs)
+
+plot(pcs[,1],pcs[,2])
+
+range(df_scale[,1])
+1.414065 + 1.411554
+
+plot(df_scale)
+
+plot(df_scale[,1],df_scale[,2])
+
+diff(range(df_scale[,1]))  #variation in x axis
+diff(range(pcs[,1]))
+
+
+```
+
+
+
+
+```{r}
+
+### case 1
+pcs_case1=pcs
+
+pcs_case1[,2]=0
+
+df_rec1 = pcs_case1 %*% t(e$vectors)
+
+{{plot(df_scale[,1],df_scale[,2])
+  lines(df_rec1[,1],df_rec1[,2],col='red')}}
+
+```
+
+
+
+```{r}
+
+### case 2
+
+pcs_case2=pcs
+
+pcs_case2[,1]=0
+
+df_rec2 = pcs_case2 %*% t(e$vectors)
+
+{{plot(df_scale[,1],df_scale[,2])
+  lines(df_rec1[,1],df_rec1[,2],col='red')
+  lines(df_rec2[,1],df_rec2[,2],col='green')
+  }}
+
+
+
+```
+
+
+
+```{r}
+
+xc <- 1    ### center x_c or h
+yc <- 2    ### y_c or k
+
+a<- runif(5,1,5)      ## major axis length
+b<- runif(5,1,5)       ## minor axis length
+
+phi <- 3 ## angle of major axis with x axis phi or tau
+
+t<-seq(0,5,0.01)
+
+x<-xc+a*cos(t)*cos(phi) - b*sin(t)*sin(phi)
+
+y<-yc+a*cos(t)*cos(phi) + b*sin(t)*cos(phi)
+
+plot(x,y,pch=19,col='blue')
+
+```
+
+
+
+```{r}
+
+x=seq(1,100)
+
+y=x+runif(100,1,50)
+plot(x,y,type='l')
+
+```
+
+
+
+## error scale
+```{r}
+df_scale1 = scale(data.frame(x=x,y=y))
+psc=df_scale %*% eigen(cor(df_scale))$vectors
+
+
+pcs_case1=pcs
+pcs_case1[,2]=0
+
+df_rec1 = pcs_case1 %*% t(eigen(cor(df_scale))$vectors)
+
+
+{{
+  plot(df_scale1)
+  lines(df_rec1,col='red')
+}}
+
+
+
+error = df_scale[,2] - df_rec1[,2]
+
+plot(error,type = 'l')
+
+plot(df_scale - df_rec1)
+```
+
+
+#########################################################################################################################################
+
+```{r}
+org=5000 *72
+rec = 5000*5+5*5
+rec/org *100
+
+
+
+
+```
+
+#### PCA
+
+1. Scale your data , for column 
+   - mean = 0,
+   - standars deviation = 1
+   
+2. compute your correlation and covariance
+3. calculate your eigen value and eigen vectors
+4. matrix multiplication between your scale data and eigen vector
+5. plot your cumulative variance curve to determime how many pcs to choose to retain 95% od variance in the data
+6. pass the retained pcs to your machine learning algorithm
+
+
+```{r}
+stocks_sub= stock %>% select(-Date,-SAMSUNG)
+dim(stocks_sub)  ##10 input variable
+
+pcs = prcomp(stocks_sub, scale. = T)
+names(pcs)
+
+View(pcs$x)         ###principal Components
+dim(pcs$x)
+
+View(pcs$rotation)  ###Eigen vector
+dim(pcs$rotation)
+
+View(pcs$sdev)      ###SD of PCS or square root of eigen values
+dim(pcs$x) 
+
+pcs$scale           ## standard deviation of input data before scaling
+
+pcs$center          ## mean of input variable
+
+
+plot(pcs)        #### Variance of individual principal components
+
+screeplot(pcs, type='lines')
+
+plot()
+``` 
+
+
+```{r}
+plot(cumsum(pcs$sdev / sum(pcs$sdev)*100),type="l")
+
+var(pcs$x)
+
+
+```
+ 
+
+
