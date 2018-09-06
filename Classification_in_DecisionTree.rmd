@@ -1,0 +1,270 @@
+---
+title: "Classification_in_DecisionTree"
+author: "Nitin Arun Khandare"
+date: "14 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+hr = read.csv('E:/Term 2/Machine Learning/Datasets/HR Analytics.csv')
+library(ggplot2)
+library(dplyr)
+library(rattle)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## classification model using  Decision tree 
+```{r}
+
+
+
+hr$Attrition = as.factor(hr$Attrition)
+model = rpart(Attrition~OverTime, data=hr)
+library(rattle)
+fancyRpartPlot(model)
+
+nrow(hr %>% dplyr::filter(OverTime=='No')) 
+unique(hr$OverTime)
+```
+
+```{r}
+model = rpart(Attrition~X+OverTime, data=hr)
+fancyRpartPlot(model)
+
+model = rpart(Attrition~MonthlyIncome, data=hr)
+fancyRpartPlot(model)
+```
+
+
+###### Numerical Input
+```{r}
+temp = hr %>% filter(MonthlyIncome < 2802)
+N = nrow(temp)
+mi_uniqs = sort(unique(temp$MonthlyIncome))
+mi_cuts = (mi_uniqs[1:length(mi_uniqs)-1] + mi_uniqs[2:length(mi_uniqs)]) / 2
+
+GIs = c()
+for (cut in mi_cuts){
+  samples_left = temp %>% filter(MonthlyIncome<cut)
+  samples_right = temp %>% filter(MonthlyIncome>cut)
+  Nl = nrow(samples_left)
+  Nr = nrow(samples_right)
+  
+  # Left side GI
+  GI_left = 1 - (nrow(samples_left %>% filter(Attrition==0))/Nl)^2 -  (nrow(samples_left %>% filter(Attrition==1))/Nl)^2
+  
+  # Right side GI
+  GI_right = 1 - (nrow(samples_right %>% filter(Attrition==0))/Nr)^2 -(nrow(samples_right %>% filter(Attrition==1))/Nr)^2
+  
+  ## Overall GI 
+  GI = (Nl/N*GI_left) + (Nr/N*GI_right)
+  GIs = c(GIs, GI)
+}
+
+result = data.frame(Predictor=rep('MonthlyIncome', length(mi_cuts)),
+                    cut=mi_cuts,
+                    GI=GIs)
+result %>% arrange(GI) %>% head(1)
+```
+
+##  More Numerical columns as inputs
+```{r}
+model = rpart(Attrition~MonthlyIncome, data=hr)
+fancyRpartPlot(model)
+temp = hr %>% filter(MonthlyIncome < 2802)
+N = nrow(temp)
+mi_uniqs = sort(unique(temp$MonthlyIncome))
+mi_cuts = (mi_uniqs[1:length(mi_uniqs)-1] + mi_uniqs[2:length(mi_uniqs)]) / 2
+
+
+age_uniqs = sort(unique(temp$Age))
+age_cuts = (age_uniqs[1:length(age_uniqs)-1] + age_uniqs[2:length(age_uniqs)]) / 2
+
+GIs = c()
+cuts = c(mi_cuts, age_cuts)
+preds = c(rep('MonthlyIncome', length(mi_cuts)),
+          rep('Age', length(age_cuts)))
+for (i in seq(1,length(cuts))){
+  cut = cuts[i]
+  samples_left = temp[temp[,preds[i]]<cut,]
+  samples_right = temp[temp[,preds[i]]>cut,]
+  Nl = nrow(samples_left)
+  Nr = nrow(samples_right)
+  
+  # Left side GI
+  GI_left = 1 - (nrow(samples_left %>% filter(Attrition==0))/Nl)^2 -  (nrow(samples_left %>% filter(Attrition==1))/Nl)^2
+  
+  # Right side GI
+  GI_right = 1 - (nrow(samples_right %>% filter(Attrition==0))/Nr)^2 -  (nrow(samples_right %>% filter(Attrition==1))/Nr)^2
+  
+  ## Overall GI 
+  GI = (Nl/N*GI_left) + (Nr/N*GI_right)
+  GIs = c(GIs, GI)
+}
+
+result = data.frame(Predictor=preds,
+                    cut=cuts,
+                    GI=GIs)
+result %>% arrange(GI) %>% head(2)
+```
+
+
+```{r}
+pred = 'Age'
+cut = 22
+
+nrow(temp[temp[,pred]<cut,])
+```
+
+
+
+#####Multiclass Input
+```{r}
+
+model = rpart(Attrition~MaritalStatus, data=hr)
+fancyRpartPlot(model)
+ms_uniqs = unique(hr$MaritalStatus)
+N = nrow(hr)
+GIs = c()
+for (status in ms_uniqs){
+  samples_left = hr %>% filter(MaritalStatus == status)
+  samples_right = hr %>% filter(MaritalStatus != status)
+  Nl = nrow(samples_left)
+  Nr = nrow(samples_right)
+  GI_left = 1 - (nrow(samples_left %>% filter(Attrition==0))/Nl)^2 -  (nrow(samples_left %>% filter(Attrition==1))/Nl)^2
+  GI_right = 1 - (nrow(samples_right %>% filter(Attrition==0))/Nr)^2 -  (nrow(samples_right %>% filter(Attrition==1))/Nr)^2
+  GI = (Nl/N*GI_left) + (Nr/N*GI_right)
+  GIs = c(GIs, GI)  
+}
+result = data.frame(left=ms_uniqs, GI=GIs)
+result %>% arrange(GI)
+```
+
+```{r}
+job_uniqs = unique(hr$JobRole)
+temp = hr
+GIs = c()
+jobs_left_all = c()
+jobs_right_all = c()
+for (n in seq(1, 4)){
+  for (i in combn(job_uniqs, n, simplify = F)){
+    jobs_left = i
+    jobs_right = job_uniqs[!job_uniqs %in% jobs_left]
+    samples_left = temp %>% filter(JobRole %in% jobs_left)
+    samples_right = temp %>% filter(JobRole %in% jobs_right)
+    Nl = nrow(samples_left)
+    Nr = nrow(samples_right)
+    GI_left = 1 - (nrow(samples_left %>% filter(Attrition==0))/Nl)^2 -  (nrow(samples_left %>% filter(Attrition==1))/Nl)^2
+    GI_right = 1 - (nrow(samples_right %>% filter(Attrition==0))/Nr)^2 -  (nrow(samples_right %>% filter(Attrition==1))/Nr)^2
+    GI = (Nl/N*GI_left) + (Nr/N*GI_right)
+    GIs = c(GIs, GI)
+    jobs_left_all = c(jobs_left_all, paste0(jobs_left, collapse = ','))
+    jobs_right_all = c(jobs_right_all, paste0(jobs_right, collapse = ','))
+  }  
+}
+
+result = data.frame(jobs_left = jobs_left_all, 
+                    jobs_right = jobs_right_all,
+                    GI=GIs)
+View(result)
+result %>% arrange(GI) %>% head(1)
+```
+
+```{r}
+model = rpart(Attrition~JobRole, data=hr)
+fancyRpartPlot(model)
+
+```
+
+```{r}
+job_uniqs[!job_uniqs %in% jobs_left]
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+ # Case1
+#= overtome == NO, of so prediction is 0
+#= overtimev== yes & monthlyincome < 2475 prediction is 1
+```
+
+### so here splitting/fiting the classification model using decisin tree
+```{r}
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+
+hr$Attrition = as.factor(hr$Attrition)
+
+hr_train = hr[sample(seq(1,nrow(hr)),(0.7*nrow(hr))),]
+
+hr_test = hr[sample(seq(1,nrow(hr)),(0.3*nrow(hr))),]
+
+dim(hr_test)
+dim(hr_train)
+
+model = rpart(Attrition ~ X+MonthlyIncome+OverTime, data = hr)
+fancyRpartPlot(model)
+hr_test$predict = predict(model, hr_test)
+
+
+hr[1189,c('X','OverTime','MonthlyIncome','Attrition')]
+
+
+x = hr_train %>% filter(OverTime == 'Yes',MonthlyIncome>=3924)
+table(x$Attrition)
+
+## we testing model here using hr_test the predicted data is added in test
+model = rpart(Attrition ~ X+MonthlyIncome+OverTime, data = hr_train)
+fancyRpartPlot(model)
+
+
+####### predicted in result
+result = as.data.frame(predict(model, hr_test))
+result
+
+### created predicter using ifelse for 0 and 1
+
+hr_test$predict = ifelse(result$`0`>0.5,0,1)
+
+View(hr_test[, c('Attrition','predict')])
+
+hr_test %>% filter(predict == Attrition) %>% nrow()
+
+nrow(hr_test)
+
+370/nrow(hr_test)
+
+
+table(hr$Attrition)
+```
+
+
+```{r}
+library(caret)
+table(hr_test$predict,hr_test$Attrition)
+hr_test %>% filter(Attrition== 0, predict==0) %>% nrow()
+
+hr_test %>% filter(Attrition == 1,predict == 0) %>% nrow()
+```
+```{r}
+library(rattle)
+model = rpart(Attrition~MonthlyIncome+OverTime, data = hr)
+
+fancyRpartPlot(model)
+```
+
+
+## Overfitted model which has high accuracy
+```{r}
+
+```
+
+
