@@ -1,0 +1,68 @@
+---
+title: "Classification_ML"
+author: "Nitin Arun Khandare"
+date: "25 April 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+bank = read.csv("E:/Term 2/Machine Learning/Datasets/bank-full.csv")
+View(bank)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(tree)
+bank_training = bank[sample(seq(1,nrow(bank)),0.8*nrow(bank)),]
+
+bank_testing = bank[sample(seq(1,nrow(bank)),0.2*nrow(bank)),]
+
+bank_model = tree(y~., data = bank)
+
+pred_response = predict(bank_model, bank_testing %>% select(-y))
+
+pred_response = as.data.frame(pred_response)
+
+pred_response$y_predicted = if_else(pred_response$no>pred_response$yes, "no","yes")
+
+bank_testing$y_predicted = pred_response$y_predicted
+
+bank_testing$error = bank_testing$y != bank_testing$y_predicted
+
+
+### that is error percentage
+100-sum(bank_testing$error) / nrow(bank_testing) * 100
+
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
