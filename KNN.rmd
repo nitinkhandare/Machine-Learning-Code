@@ -1,0 +1,90 @@
+---
+title: "K_Nearest_Neighber"
+author: "Nitin Arun Khandare"
+date: "17 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(caret)
+library(class)
+library(BBmisc)
+library(dplyr)
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+data('iris')
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### KNN from Scatch
+## Assumptions
+
+ - Input variables are not normalized
+ - No categorical inputs, hence no preprocessing is required for this data set
+
+```{r}
+data("iris")
+iris_train = iris[sample(seq(1, nrow(iris)), (0.7*nrow(iris))),]
+iris_test = iris[sample(seq(1, nrow(iris)), (0.3*nrow(iris))),]
+
+
+predictors = c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width")
+k = 11
+iris_train$dist = 0
+iris_test$pred = 'random'
+
+for (i in seq(1, nrow(iris_test))){
+  p1 = iris_test[i,predictors]
+  for (j in seq(1, nrow(iris_train))){
+    p2 = iris_train[j, predictors]
+    calc_dist = dist(rbind(p1, p2))
+    iris_train[j, 'dist'] = calc_dist
+  }
+  nn = iris_train %>% arrange(dist) %>% head(k)
+  nn_poll = table(nn$Species)
+  iris_test[i, 'pred'] = names(nn_poll)[which.max(nn_poll)]
+}
+```
+
+### KNN Compute Accuracy
+```{r}
+sum(iris_test$Species == iris_test$pred)/nrow(iris_test)
+```
+
+### Preprocessing in real time data set
+ - converting categorical columns to dummy variable
+ - normalize or scale input variables
+```{r}
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+
+## Covert categorical columns to numerical columns
+dummy_obj = dummyVars(~., data=hr %>% select(-Over18))
+hr_new = data.frame(predict(dummy_obj, newdata = hr))
+
+## Normalizing
+hr_norm = normalize(hr_new, method='range', range = c(0,1))
+hr_train = hr_norm[sample(seq(1, nrow(hr_norm)), (0.7*nrow(hr_norm))),]
+hr_test = hr_norm[sample(seq(1, nrow(hr_norm)), (0.3*nrow(hr_norm))),]
+```
+
+
+
+### Model 
+```{r}
+
+hr_test$predict = knn(hr_train,
+                      hr_test,
+                      cl=as.factor(hr_train$Attrition),
+                      k=1)
+hr_test$Attrition = as.factor(hr_test$Attrition)
+hr_test$predict = as.factor(hr_test$predict)
+confusionMatrix(hr_test$predict, hr_test$Attrition, positive = '1')
+
+
+
+```
+
+
+```{r}
+
+```
+

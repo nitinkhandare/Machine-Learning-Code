@@ -1,0 +1,100 @@
+---
+title: "Multi-Linear_regression"
+author: "Nitin Arun Khandare"
+date: "25 April 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+ads = read.csv("file:///E:/Term 2/Machine Learning/Datasets/Advertising.csv")
+library(dplyr)
+library(ggplot2)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## do transformation if require
+
+## then check for the missing values for data imputation
+```{r}
+
+ads = ads %>% select(-X)
+names(ads)
+
+colSums(is.na(ads))
+```
+
+
+### then check for outlier
+```{r}
+
+boxplot(ads$newspaper)
+
+```
+
+
+## feature selection by looking AT the correlation value
+```{r}
+
+cor(ads)
+
+```
+
+
+#### spliting data in training and testing using sampling
+```{r}
+
+ads_training = ads[sample(seq(1,200),0.8*nrow(ads)),]
+
+ads_testing = ads[sample(seq(1,200),0.2*nrow(ads)),]
+
+dim(ads_training)
+dim(ads_testing)
+
+
+```
+
+
+## fit the model
+```{r}
+ads_model = lm(sales~TV+radio, data=ads_training)
+ads_model
+
+summary(ads_model)
+```
+
+
+## predict for test data
+```{r}
+ads_testing$sales_predicted = predict(ads_model, ads_testing %>% select(-sales))
+
+View(ads_testing)
+```
+
+## plot the error and original value (validating)
+```{r}
+{{plot(ads_testing$sales, type = 'l')
+  lines(ads_testing$sales_predicted,col='red')
+  }}
+```
+
+###calculate SSE  (performance evaluation)
+```{r}
+ads_testing$error = ads_testing$sales - ads_testing$sales_predicted
+
+ads_testing$error_square = ads_testing$error ^ 2
+
+sum(ads_testing$error_square)
+
+
+```
+
+```{r}
+m1 = 0.5
+c1 = 10
+
+{{plot(ads_training$TV, ads_training$sales, xlab = "TV",ylab = "Sales")
+  abline(c1,m1)}}
+```
+
+
+

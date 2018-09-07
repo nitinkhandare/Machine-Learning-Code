@@ -1,0 +1,142 @@
+---
+title: "K_MeanClustering"
+author: "Nitin Arun Khandare"
+date: "18 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+odi = read.csv("E:/Term 2/Machine Learning/Datasets/odi-batting.csv")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+odi$century = ifelse(odi$Runs > 99,1,0)
+
+odi$ducks = ifelse(odi$Runs == 0,1,0)
+
+odi$above_150 = ifelse(odi$Runs>149,1,0)
+
+odi$fifties = ifelse(odi$Runs > 49&odi$Runs<100,1,0
+                    )
+odi$missed_centirues = ifelse(odi$Runs > 90&odi$Runs<100,1,0)
+
+
+```
+
+```{r}
+player_summary = odi%>% group_by(Player) %>% summarise(
+  matches = n(),
+  total_runs = sum(Runs,na.rm = T),
+  avg_runs = mean(Runs,na.rm = T),
+  centuries = sum(century,na.rm = T),
+  ducks = sum(ducks,na.rm = T),
+  fifties=sum(fifties,na.rm = T),
+  above_150 = sum(above_150,na.rm = T),
+  missed_centirues =sum(missed_centirues,na.rm = T),)
+```
+
+```{r}
+
+```
+
+### Arrange the player in total order of runs
+```{r}
+library(BBmisc) ## this library use for normalization
+top_player = player_summary %>% arrange(-total_runs) %>% head(100)
+
+data_kmeans = top_player %>% select(-Player)
+
+data_norm = normalize(data_kmean,method = 'range',range = c(0,1))
+
+model_kmeans = kmeans(data_norm,centers = 10)
+
+top_player$cluster = model_kmeans$cluster
+
+data_norm$cluster = model_kmeans$cluster
+## beacause of multidimention we use here barplot for two variable we use insted of that scatter
+barplot(table(top_player$cluster))
+```
+
+######  if avoid normalization so ther will be variation in data and cluster will not form properly
+
+### characteristics of cluster
+```{r}
+model_kmeans$centers
+```
+
+
+### within square sum
+```{r}
+model_kmeans$withinss
+```
+
+### within square sum
+
+```{r}
+model_kmean$betweenss
+```
+
+### plotting total withinss
+```{r}
+model_kmean$tot.withinss
+```
+### here we are reducing the 8 dim to 2 to plot on scatter
+```{r}
+View(data_norm)
+dim(data_norm)
+
+dim(as.matrix(dist(data_norm %>% select(-cluster))))
+data_norm_2d = cmdscale(dist(data_norm %>% select(-cluster)))
+
+data_norm_2d = as.data.frame(data_norm_2d)
+
+data_norm_2d$cluster = as.factor(data_norm$cluster)
+library(ggplot2)
+
+ggplot(data_norm_2d,aes(x = V1, y=V2,color = cluster)) + geom_jitter()
+
+plot(data_norm_2d)
+```
+
+
+```{r}
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+
+hr_subset = hr %>% select(Age,MonthlyIncome)
+
+hr_subset$Age = as.numeric(hr_subset$Age)
+
+hr_subset_norm = normalize(hr_subset,method = 'range',range = c(0,1))
+
+model_hr = kmeans(hr_subset)
+
+```
+
+### hirarchical Clustering
+```{r}
+names(data_norm)
+
+hclust_model = hclust(dist(data_norm %>% select(-cluster)))
+
+plot(hclust_model)
+```
+
+```{r}
+data_norm$cluster = cutree(hclust_model,k = 4)
+
+data_norm_2d = cmdscale(dist(data_norm %>% select(-cluster)))
+
+data_norm_2d = as.data.frame(data_norm_2d)
+
+data_norm_2d$cluster = as.factor(data_norm$cluster)
+
+ggplot(data_norm_2d,aes(x = V1,y = V2,color = cluster)) + geom_jitter()
+```
+
+```{r}
+cor_player = cor(t(data_norm %>% head(10) %>% select(-cluster)))
+dim(cor_player)
+corrplot::corrplot(cor_player, order = 'hclust', addrect = 2)
+```
+

@@ -1,0 +1,42 @@
+---
+title: "naiveBayes"
+author: "Nitin Arun Khandare"
+date: "17 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+library(e1071)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+hr$Attrition = as.factor(hr$Attrition)
+set.seed(100)
+hr_train = hr[sample(seq(1,nrow(hr)),(0.7*nrow(hr))),]
+hr_test = hr[sample(seq(1,nrow(hr)),(0.3*nrow(hr))),]
+
+model_nb = naiveBayes(Attrition~JobRole, data = hr_train)
+
+predicted = predict(model_nb, hr_test,type = 'raw')
+
+hr_test[12, "JobRole"]
+
+```
+
+```{r}
+hr_train %>% filter(Attrition == 0, X == 'Female') %>% nrow()
+
+hr_train %>% filter(Attrition == 0) %>% nrow()
+```
+
+```{r}
+unique(hr$JobRole)
+```
+
+```{r}
+
+```
+

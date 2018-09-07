@@ -1,0 +1,62 @@
+---
+title: "hierarhical clustering"
+author: "Nitin Khandare"
+date: "July 17, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(BBmisc)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+
+hr_subset = hr %>% select(Age,MonthlyIncome)
+
+hr_subset$Age = as.numeric(hr_subset$Age)
+
+hr_subset_norm = normalize(hr_subset,method = 'range',range = c(0,1))
+
+model_hr = kmeans(hr_subset_norm,centers = 10, )
+
+```
+
+
+
+### hirarchical Clustering
+```{r}
+hclust_model = hclust(dist(hr_subset_norm))
+
+plot(hclust_model)
+
+cut = cutree(hclust_model,k = 2)
+
+plot(cut)
+```
+
+
+
+```{r}
+hr_subset_norm$cluster = cutree(hclust_model,k = 4)
+
+data_norm_2d = cmdscale(dist(hr_subset_norm %>% select(-cluster)))
+
+data_norm_2d = as.data.frame(data_norm_2d)
+
+data_norm_2d$cluster = as.factor(hr_subset_norm$cluster)
+
+ggplot(data_norm_2d,aes(x = V1,y = V2,color = cluster)) + geom_jitter()
+
+
+```
+
+```{r}
+cor_player = cor(t(data_norm %>% head(10) %>% select(-cluster)))
+dim(cor_player)
+corrplot::corrplot(cor_player, order = 'hclust', addrect = 2)
+```
+

@@ -1,0 +1,79 @@
+---
+title: "PerformanceML"
+author: "Nitin Khandare"
+date: "June 21, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+hr = read.csv("E:/Term 2/Machine Learning/Datasets/HR Analytics.csv")
+
+df = hr
+library(dplyr)
+library(caret)
+
+control = trainControl(method = 'repeatedcv', number = 10, repeats = 2)
+
+metric1 = "Accuracy"
+
+turngrid <- expand.grid(.mtry=c(5,6,7))
+
+rf_default <- train(class ~.,
+                    data = hr %>% select(-Over18),
+                    method = 'rf',
+                    metric = metric1,
+                    trControl=control,
+                    tuneGrid = turngrid)
+
+rf_default$result
+
+
+```
+
+
+### multi-class Prediction 
+```{r}
+library(caret)
+car = read.csv("E:/Term 2/Machine Learning/Datasets/car_data.csv")
+
+df = car
+
+set.seed(100)
+
+
+train.rows = createDataPartition(df$class,p=0.7,list =F)
+train = df[train.rows,]
+test = df[-train.rows,]
+
+table(df$class)/nrow(df)
+table(df$class)/ nrow(train)
+table(df$class)/nrow(test)
+nrow(df)
+
+model_rf = randomForest(class~., data = train)
+
+test$pred_class = as.factor(predict(model_rf, test))
+
+caret::confusionMatrix(test$pred_class, test$class)
+
+
+```
+
+```{r}
+test %>% filter(pred_class == 'acc' & class == 'acc') %>% nrow()
+test %>% filter(class == 'vgood') %>% nrow()
+
+14/19
+```
+
+```{r}
+prob_vals = predict(model_rf,test,type = 'prob')
+
+
+```
+

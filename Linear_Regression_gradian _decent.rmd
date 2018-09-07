@@ -1,0 +1,234 @@
+---
+title: "Simple_linear_Reg"
+author: "Nitin Arun Khandare"
+date: "26 April 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+ads = read.csv("file:///E:/Term 2/Machine Learning/Datasets/Advertising.csv")
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+ads_training = ads[sample(seq(1,200),0.8*nrow(ads)),]
+
+ads_training = ads[sample(seq(1,200),0.2*nrow(ads)),]
+
+
+
+m1 = 0.5
+c1 = 10
+
+{{plot(ads_training$TV, ads_training$sales, xlab = "TV",ylab = "Sales")
+  abline(c1,m1)}}
+
+ggplot(ads_training,aes(x=TV,y=sales)) + geom_jitter() + geom_abline(c1,m1)
+```
+
+
+
+```{r}
+mse = function(x , y , m ,c){
+  yhat = m * x + c
+  error = sum((y - yhat) ^ 2) / length(x)
+  return(error)
+  
+}
+
+sample_x = c(1:5)
+sample_y = c(10,20,30,40,50)
+m = 5
+c = 1
+
+mse(sample_x,sample_y, m, c)
+
+iterations = 100
+cspace = seq(1,10, length.out = iterations)
+
+mspace = seq(-0.6,0.6, length.out = iterations)
+
+zspace = c()
+
+for(i in mspace){
+  for (j in cspace) {
+    zspace = c(zspace, mse(ads_training$TV, 
+                           ads_training$sales, 
+                           i, j))
+  }
+}
+
+
+zmat = matrix(zspace,iterations,iterations)
+    library(plotly)
+  plot_ly(x = mspace, y = cspace, z = zmat) %>% add_surface()
+```
+
+
+############## Gradian decent  #################
+
+```{r}
+
+x = rnorm(100)
+y = 0.05 * x
+df = data.frame(x=x,y=y)
+
+lm(y~x,data=df)
+
+```
+
+
+
+######### gradian decent implementation
+```{r}
+library(dplyr)
+m = 100
+#m = 10
+alpha = 0.01
+#alpha = 0.2      # learning 
+iterations = 100  # we can increase the iteration to get the global minimum
+
+for(i in seq(1,iterations)){
+  df = mutate(df,xy_vals = x*y)
+  df = mutate(df,mx_square = m * (x^2))
+  df = mutate(df,xy_minus_mx2 = xy_vals - mx_square)
+  m_gradient = -2/nrow(df) * sum(df$xy_minus_mx2)
+  
+  m = m - alpha * m_gradient 
+}
+print(m)
+
+```
+
+
+
+### calculate error for every M value
+```{r}
+m = 100
+#m = 10
+alpha = 0.01
+#alpha = 0.2           # learning rate
+iterations = 1000      # we can increase the iteration to get the global minimum
+
+errors_vals = c()
+
+for(i in seq(1,iterations)){
+  df = mutate(df,mx_vals = m*x)
+  df = mutate(df,y_mx_vals = (y - mx_vals)^2)
+  curr_error = sum(df$y_mx_vals) / nrow(df)
+  errors_vals = c(errors_vals,curr_error)
+  df = mutate(df,xy_vals = x*y)
+  df = mutate(df,mx_square = m * (x^2))
+  df = mutate(df,xy_minus_mx2 = xy_vals - mx_square)
+  m_gradient = -2/nrow(df) * sum(df$xy_minus_mx2)
+  
+  m = m - alpha * m_gradient 
+}
+plot(errors_vals)
+```
+
+
+
+```{r}
+
+y = 0.05 * x + 100
+df = data.frame(x=x,y=y)
+alpha = 1 / nrow(df)
+m = 0
+c1 = 0
+iterations = 500
+
+m_vals = c(m)
+c1_vals = c()
+errors_vals = c()
+
+for (i in seq(1,iterations)){
+  m_vals = c(m_vals,m)
+  c1_vals = c(c1_vals,c1)
+  df = mutate(df, e = (y - m * x - c1)^2)
+  df = mutate(df,msigma = (x * y)-(m * x^2) - (c1*x))
+  df = mutate(df,csigma = y - m * x - c1)
+  errors_vals = c(errors_vals,sum(df$e)/nrow(df))
+  m_gradient = -2/nrow(df) * sum(df$msigma)
+  c1_gradient = -2/nrow(df) * sum(df$c1sigma)
+  m = m - alpha * m_gradient
+  c1 = c1 - alpha * c1_gradient
+}
+
+print(list(m=m, c=c1))
+```
+
+
+```{r}
+
+library(rgl)
+open3d()
+plot3d(x=m_vals , y = c1_vals, z = errors_vals)
+```
+
+
+```{r}
+library(rgl)
+
+
+
+cuts =100
+c_ranges = seq(0,150,length.out = cuts)
+n_ranges = seq(0,5,length.out = cuts)
+zspace = c()
+mspace = c()
+cspace = c()
+
+for (i in n_ranges) {
+  for (j in c_ranges) {
+    curr_z = sum((df$y - i * df$x - j)^2) / nrow(df)
+    zspace = c(zspace,curr_z)
+    mspace = c(mspace,i)
+    cspace = c(cspace,j)
+    
+  }
+  
+}
+
+open3d()
+plot3d(x = mspace, y = cspace, z = zspace, col = heat.colors(10))
+plot3d(x = m_vals, y = c1_vals, z = errors_vals, add = T)
+```
+
+
+
+### geadient decent on real time dataset  Example Adver.csv
+
+```{r}
+adv = read.csv("E:/Term 2/Machine Learning/Datasets/Advertising.csv")
+
+df = data.frame(x=scale(adv$TV),y=adv$sales)
+alpha =1/nrow(df)
+alpha = 1 / nrow(df)
+m = 0
+c1 = 0
+iterations = 500
+
+m_vals = c(m)
+c1_vals = c()
+errors_vals = c()
+
+for (i in seq(1,iterations)){
+  m_vals = c(m_vals,m)
+  c1_vals = c(c1_vals,c1)
+  df = mutate(df, e = (y - m * x - c1)^2)
+  df = mutate(df,msigma = (x * y)-(m * x^2) - (c1*x))
+  df = mutate(df,csigma = y - m * x - c1)
+  errors_vals = c(errors_vals,sum(df$e)/nrow(df))
+  m_gradient = -2/nrow(df) * sum(df$msigma)
+  c1_gradient = -2/nrow(df) * sum(df$c1sigma)
+  m = m - alpha * m_gradient
+  c1 = c1 - alpha * c1_gradient
+}
+
+```
+

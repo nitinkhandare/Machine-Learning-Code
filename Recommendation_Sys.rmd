@@ -1,0 +1,129 @@
+---
+title: "Recommendation Sytem"
+author: "Nitin Arunram"
+date: "22 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(recommenderlab)
+?library(arules)
+library(arulesViz)
+library(reshape2)
+??arules
+data("Groceries")
+gros = Groceries
+View(gros)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## CONTENT-BASED RECOMMENDATIONS
+
+### Apriory Algorithm
+```{r}
+inspect(gros[1])
+
+```
+
+```{r}
+model  = apriori(data = gros, parameter = list(support = 0.03,confidence = 0))
+```
+
+```{r}
+inspect(model)
+```
+
+```{r}
+x = list(c('a','b','c'),c('a','d'),c('e','a','c'),c('e','b'))
+
+x_trans = as(x,'transactions')
+
+inspect(x_trans[1])
+
+```
+
+```{r}
+model = apriori(x_trans,parameter = list(support = 0,confidence = 0))
+
+inspect(model)
+
+```
+
+```{r}
+
+
+model1 = apriori(gros ,parameter = list(support = (30/9835),confidence = 0.5))
+
+inspect(sort(model1, by = 'lift')[1:10])
+
+summary(model1)
+```
+
+
+###2. User Based Collabration Filtering 
+
+### Model building
+```{r}
+library(recommenderlab)
+
+movies = read.csv("E:/Term 2/Machine Learning/Datasets/Movies Rating/movies.csv")
+ratings = read.csv("E:/Term 2/Machine Learning/Datasets/Movies Rating/ratings.csv")
+```
+
+
+```{r}
+length(unique(ratings$userId)) ## totally 671 user
+
+length(unique(ratings$movieId)) ## totally 9066 movie
+
+
+ratings_matrix = dcast(data = ratings, userId~movieId, value.var = 'rating')
+dim(ratings_matrix)
+
+ranking_matrix = as(as.matrix(ratings_matrix[,-1]), 'realRatingMatrix')
+
+ubcf = Recommender(ranking_matrix,method = 'UBCF',param = list(method = 'Cosine',nn=10)) ## nn fro number of neighber
+
+
+```
+
+
+## now movies prediction is here
+```{r}
+library(dplyr)
+result = predict(ubcf, ranking_matrix[1,],n=10)
+
+as(result,"list")
+
+movies_sugg = as(result,"list")[[1]]
+
+movies %>% filter(movieId %in% movies_sugg) %>% select(title)
+
+```
+
+
+
+
+###3. item Base Collabrative system
+```{r}
+data("Jester5k")
+data()
+data = Jester5k
+JesterJokes
+```
+
+
+```{r}
+ibcf = Recommender(Jester5k, method = "IBCF",parameter = list(method="Cosine",k = 10))
+
+pred = predict(ibcf, Jester5k[1], n=5)
+
+as(pred, 'list')
+
+```
+
+```{r}
+prcom
+```
+
